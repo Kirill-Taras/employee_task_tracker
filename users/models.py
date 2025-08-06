@@ -74,12 +74,10 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"  # Указываем, что логином является email
     REQUIRED_FIELDS = ["full_name", "position"]
 
-
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
         ordering = ["email"]
-
 
     def __str__(self):
         """
