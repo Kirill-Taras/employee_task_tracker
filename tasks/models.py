@@ -58,7 +58,11 @@ class Task(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлена")
 
+    class Meta:
+        verbose_name = "Задача"
+        verbose_name_plural = "Задачи"
+        ordering = ["created_at"]
+
     def __str__(self):
         """Строковое представление задачи"""
         return f"{self.title} ({self.get_status_display()})"
-
