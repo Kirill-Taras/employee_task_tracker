@@ -1,0 +1,4 @@
+[flake8]
+max-line-length = 92
+exclude = migrations,venv,.venv
+ignore = W605, W503,  W504
