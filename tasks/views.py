@@ -59,3 +59,57 @@ class TaskViewSet(viewsets.ModelViewSet):
             })
 
         return Response(data)
+
+    @action(detail=False, methods=["get"], url_path="important-tasks")
+    def important_tasks(self, request):
+        """
+        Эндпоинт "Важные задачи":
+        - Задачи без исполнителя, но от которых зависят задачи в работе
+        - Определение сотрудников, кто может их взять
+        """
+        candidate_tasks = Task.objects.filter(
+            executor__isnull=True
+        )
+        candidate_tasks = candidate_tasks.filter(
+            subtasks__status__in=[Task.Status.IN_PROGRESS, Task.Status.DONE]
+        ).distinct()
+
+        employees_with_load = (
+            CustomUser.objects.annotate(
+                active_tasks_count=Count(
+                    "tasks",
+                    filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
+                )
+            )
+        )
+
+        # Наименее загруженный
+        min_load = employees_with_load.aggregate(min_count=Count(
+            "tasks",
+            filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
+        ))["min_count"] or 0
+
+        result = []
+        for task in candidate_tasks:
+            available_employees = []
+
+            # Наименее загруженные сотрудники
+            least_loaded = employees_with_load.filter(active_tasks_count=min_load)
+
+            available_employees.extend([
+                f"{u.full_name}" for u in least_loaded
+            ])
+
+            # Сотрудник, выполняющий родительскую задачу
+            if task.parent and task.parent.executor:
+                parent_executor = task.parent.executor
+                if parent_executor.active_tasks_count <= min_load + 2:
+                    available_employees.append(parent_executor.full_name)
+
+            result.append({
+                "task": task.title,
+                "due_date": task.due_date,
+                "available_employees": list(set(available_employees))  # убираем дубликаты
+            })
+
+        return Response(result)
