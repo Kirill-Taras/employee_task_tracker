@@ -1,7 +1,11 @@
-# tasks/views.py
+from django.db.models import Count, Q
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from users.models import CustomUser
 from .models import Task
-from .serializers import TaskSerializer
+from .serializers import TaskSerializer, UserShortSerializer
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -25,3 +29,33 @@ class TaskViewSet(viewsets.ModelViewSet):
         из текущего авторизованного пользователя.
         """
         serializer.save(creator=self.request.user)
+
+    @action(detail=False, methods=["get"], url_path="busy-employees")
+    def busy_employees(self, request):
+        """
+        Специальный эндпоинт: список сотрудников по загрузке.
+        Возвращает сотрудников с количеством активных задач (new, in_progress),
+        отсортированных по количеству задач по убыванию.
+        """
+        employees = (
+            CustomUser.objects.annotate(
+                active_tasks_count=Count(
+                    "tasks",
+                    filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
+                )
+            )
+            .filter(active_tasks_count__gt=0)
+            .order_by("-active_tasks_count")
+        )
+
+        # Формируем список для ответа
+        data = []
+        for emp in employees:
+            tasks = emp.tasks.filter(status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
+            data.append({
+                "employee": UserShortSerializer(emp).data,
+                "active_tasks_count": emp.active_tasks_count,
+                "tasks": TaskSerializer(tasks, many=True).data
+            })
+
+        return Response(data)
