@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 from .models import Task
 from users.models import CustomUser
@@ -39,3 +41,8 @@ class TaskSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def validate_due_date(self, value):
+        if value < date.today():
+            raise serializers.ValidationError("Дата выполнения не может быть в прошлом.")
+        return value
