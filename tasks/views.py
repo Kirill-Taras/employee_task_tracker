@@ -41,7 +41,9 @@ class TaskViewSet(viewsets.ModelViewSet):
             CustomUser.objects.annotate(
                 active_tasks_count=Count(
                     "tasks",
-                    filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
+                    filter=Q(
+                        tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS]
+                    ),
                 )
             )
             .filter(active_tasks_count__gt=0)
@@ -51,12 +53,16 @@ class TaskViewSet(viewsets.ModelViewSet):
         # Формируем список для ответа
         data = []
         for emp in employees:
-            tasks = emp.tasks.filter(status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
-            data.append({
-                "employee": UserShortSerializer(emp).data,
-                "active_tasks_count": emp.active_tasks_count,
-                "tasks": TaskSerializer(tasks, many=True).data
-            })
+            tasks = emp.tasks.filter(
+                status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS]
+            )
+            data.append(
+                {
+                    "employee": UserShortSerializer(emp).data,
+                    "active_tasks_count": emp.active_tasks_count,
+                    "tasks": TaskSerializer(tasks, many=True).data,
+                }
+            )
 
         return Response(data)
 
@@ -67,27 +73,30 @@ class TaskViewSet(viewsets.ModelViewSet):
         - Задачи без исполнителя, но от которых зависят задачи в работе
         - Определение сотрудников, кто может их взять
         """
-        candidate_tasks = Task.objects.filter(
-            executor__isnull=True
-        )
+        candidate_tasks = Task.objects.filter(executor__isnull=True)
         candidate_tasks = candidate_tasks.filter(
             subtasks__status__in=[Task.Status.IN_PROGRESS, Task.Status.DONE]
         ).distinct()
 
-        employees_with_load = (
-            CustomUser.objects.annotate(
-                active_tasks_count=Count(
-                    "tasks",
-                    filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
-                )
+        employees_with_load = CustomUser.objects.annotate(
+            active_tasks_count=Count(
+                "tasks",
+                filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS]),
             )
         )
 
         # Наименее загруженный
-        min_load = employees_with_load.aggregate(min_count=Count(
-            "tasks",
-            filter=Q(tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS])
-        ))["min_count"] or 0
+        min_load = (
+            employees_with_load.aggregate(
+                min_count=Count(
+                    "tasks",
+                    filter=Q(
+                        tasks__status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS]
+                    ),
+                )
+            )["min_count"]
+            or 0
+        )
 
         result = []
         for task in candidate_tasks:
@@ -96,9 +105,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             # Наименее загруженные сотрудники
             least_loaded = employees_with_load.filter(active_tasks_count=min_load)
 
-            available_employees.extend([
-                f"{u.full_name}" for u in least_loaded
-            ])
+            available_employees.extend([f"{u.full_name}" for u in least_loaded])
 
             # Сотрудник, выполняющий родительскую задачу
             if task.parent and task.parent.executor:
@@ -106,10 +113,14 @@ class TaskViewSet(viewsets.ModelViewSet):
                 if parent_executor.active_tasks_count <= min_load + 2:
                     available_employees.append(parent_executor.full_name)
 
-            result.append({
-                "task": task.title,
-                "due_date": task.due_date,
-                "available_employees": list(set(available_employees))  # убираем дубликаты
-            })
+            result.append(
+                {
+                    "task": task.title,
+                    "due_date": task.due_date,
+                    "available_employees": list(
+                        set(available_employees)
+                    ),  # убираем дубликаты
+                }
+            )
 
         return Response(result)

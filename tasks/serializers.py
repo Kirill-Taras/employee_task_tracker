@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Task
 from users.models import CustomUser
 
+
 class UserShortSerializer(serializers.ModelSerializer):
     """
     Вложенный сериализатор для краткой информации о пользователе.
@@ -9,7 +10,7 @@ class UserShortSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone', 'avatar']
+        fields = ["id", "email", "first_name", "last_name", "phone", "avatar"]
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -18,22 +19,22 @@ class TaskSerializer(serializers.ModelSerializer):
 
     executor_id = serializers.PrimaryKeyRelatedField(
         queryset=CustomUser.objects.all(),
-        source='executor',
+        source="executor",
         write_only=True,
-        allow_null=True
+        allow_null=True,
     )
 
     class Meta:
         model = Task
         fields = [
-            'id',
-            'title',
-            'description',
-            'status',
-            'creator',
-            'executor',
-            'executor_id',
-            'parent',
-            'created_at',
-            'updated_at',
+            "id",
+            "title",
+            "description",
+            "status",
+            "creator",
+            "executor",
+            "executor_id",
+            "parent",
+            "created_at",
+            "updated_at",
         ]
