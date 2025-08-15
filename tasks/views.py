@@ -104,13 +104,15 @@ class TaskViewSet(viewsets.ModelViewSet):
 
             # Наименее загруженные сотрудники
             least_loaded = employees_with_load.filter(active_tasks_count=min_load)
-
             available_employees.extend([f"{u.full_name}" for u in least_loaded])
 
             # Сотрудник, выполняющий родительскую задачу
             if task.parent and task.parent.executor:
                 parent_executor = task.parent.executor
-                if parent_executor.active_tasks_count <= min_load + 2:
+                parent_active_tasks_count = parent_executor.tasks.filter(
+                    status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS]
+                ).count()
+                if parent_active_tasks_count <= min_load + 2:
                     available_employees.append(parent_executor.full_name)
 
             result.append(

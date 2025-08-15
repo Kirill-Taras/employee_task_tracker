@@ -32,6 +32,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "creator",
+            'due_date',
             "executor",
             "executor_id",
             "parent",
