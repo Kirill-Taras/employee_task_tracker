@@ -100,26 +100,30 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         result = []
         for task in candidate_tasks:
-            available_employees = []
+            available_employees = set()
 
             # Наименее загруженные сотрудники
             least_loaded = employees_with_load.filter(active_tasks_count=min_load)
-
-            available_employees.extend([f"{u.full_name}" for u in least_loaded])
+            available_employees.update([f"{u.full_name}" for u in least_loaded])
+            # Исполнители подзадач
+            subtask_executors = task.subtasks.exclude(executor__isnull=True).values_list("executor__full_name",
+                                                                                         flat=True)
+            available_employees.update(subtask_executors)
 
             # Сотрудник, выполняющий родительскую задачу
             if task.parent and task.parent.executor:
                 parent_executor = task.parent.executor
-                if parent_executor.active_tasks_count <= min_load + 2:
-                    available_employees.append(parent_executor.full_name)
+                parent_active_tasks_count = parent_executor.tasks.filter(
+                    status__in=[Task.Status.NEW, Task.Status.IN_PROGRESS]
+                ).count()
+                if parent_active_tasks_count <= min_load + 2:
+                    available_employees.add(parent_executor.full_name)
 
             result.append(
                 {
                     "task": task.title,
                     "due_date": task.due_date,
-                    "available_employees": list(
-                        set(available_employees)
-                    ),  # убираем дубликаты
+                    "available_employees": list(available_employees)
                 }
             )
 

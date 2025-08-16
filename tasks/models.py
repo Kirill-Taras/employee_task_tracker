@@ -33,6 +33,15 @@ class Task(models.Model):
         verbose_name="Исполнитель",
     )
 
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_tasks",
+        verbose_name="Создатель задачи",
+    )
+
     parent = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
