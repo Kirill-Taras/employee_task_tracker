@@ -59,34 +59,33 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/employee_task_tracker:${{ github.sha }}
 
-#  deploy:
-#    runs-on: ubuntu-latest
-#    needs: build
-#
-#    steps:
-#      - name: Set up SSH
-#        uses: webfactory/ssh-agent@v0.7.0
-#        with:
-#          ssh-private-key: ${{ secrets.SSH_KEY }}
-#
-#      - name: Create .env file
-#        run: |
-#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-#          cat > .env <<EOL
-#              DB_NAME=${{ secrets.DB_NAME }}
-#              DB_USER=${{ secrets.DB_USER }}
-#              DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-#              DB_HOST=${{ secrets.DB_HOST }}
-#              DB_PORT=${{ secrets.DB_PORT }}
-#              CELERY_BROKER_URL=${{ secrets.CELERY_BROKER_URL }}
-#              CELERY_RESULT_BACKEND=${{ secrets.CELERY_RESULT_BACKEND }}
-#            EOL
-#
-#      - name: Deploy to Server
-#        run: |
-#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-#            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-#            sudo docker stop myapp || true
-#            sudo docker rm myapp || true
-#            sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-#          EOF
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Create .env file
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          cd ${{ secrets.DEPLOY_DIR }}
+          cat > .env <<EOL
+              DB_NAME=${{ secrets.DB_NAME }}
+              DB_USER=${{ secrets.DB_USER }}
+              DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+              DB_HOST=${{ secrets.DB_HOST }}
+              DB_PORT=${{ secrets.DB_PORT }}
+            EOL
+
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/employee_task_tracker:${{ github.sha }}
+            sudo docker stop employee_task_tracker || true
+            sudo docker rm employee_task_tracker || true
+            sudo docker run -d --name employee_task_tracker -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/employee_task_tracker:${{ github.sha }}
+          EOF
