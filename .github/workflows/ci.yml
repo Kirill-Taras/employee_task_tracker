@@ -72,10 +72,7 @@ jobs:
       - name: Create .env file
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            mkdir -p ${{ secrets.DEPLOY_DIR }}
             cd ${{ secrets.DEPLOY_DIR }}
-            
-            # Создаём .env файл для Django
             cat > .env <<EOL
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USER=${{ secrets.DB_USER }}
@@ -90,26 +87,23 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             cd ${{ secrets.DEPLOY_DIR }}
-  
+      
             echo "📦 Тянем свежий образ..."
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/employee_task_tracker:${{ github.sha }}
-  
+      
             echo "🛑 Удаляем старый контейнер (если есть)..."
-            if [ "$(sudo docker ps -a -q --filter name=employee_task_tracker)" ]; then
-              sudo docker stop employee_task_tracker || true
-              sudo docker rm employee_task_tracker || true
-            fi
-  
+            sudo docker rm -f employee_task_tracker_web || true
+      
             echo "🚀 Запускаем новый контейнер..."
             sudo docker run -d \
-              --name employee_task_tracker \
+              --name employee_task_tracker_web \
               --env-file .env \
               -p 80:8000 \
               ${{ secrets.DOCKER_HUB_USERNAME }}/employee_task_tracker:${{ github.sha }}
-  
+      
             echo "⚙️ Применяем миграции..."
-            sudo docker exec employee_task_tracker python manage.py migrate --noinput
-  
+            sudo docker exec employee_task_tracker_web python manage.py migrate --noinput
+      
             echo "📂 Собираем статику..."
-            sudo docker exec employee_task_tracker python manage.py collectstatic --noinput
+            sudo docker exec employee_task_tracker_web python manage.py collectstatic --noinput
           EOF
