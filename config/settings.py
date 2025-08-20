@@ -56,11 +56,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-if "test" in sys.argv:
+if "test" in sys.argv or os.getenv("GITHUB_WORKFLOW"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": ":memory:",  # база создается в памяти
+            "NAME": ":memory:",
         }
     }
 else:
