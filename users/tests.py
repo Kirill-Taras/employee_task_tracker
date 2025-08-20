@@ -22,7 +22,7 @@ class UserAPITests(TestCase):
             email="admin@example.com",
             password="adminpass",
             full_name="Admin User",
-            position="Admin"
+            position="Admin",
         )
 
         # Создаём обычного пользователя
@@ -30,7 +30,7 @@ class UserAPITests(TestCase):
             email="user@example.com",
             password="userpass",
             full_name="Regular User",
-            position="Employee"
+            position="Employee",
         )
 
         # URL для регистрации пользователя
