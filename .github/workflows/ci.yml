@@ -60,6 +60,7 @@ jobs:
       run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/employee_task_tracker:${{ github.sha }}
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
 
@@ -84,25 +85,4 @@ jobs:
           EOF
 
       - name: Deploy with Docker Compose
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd ${{ secrets.DEPLOY_DIR }}
-          
-            echo "🛑 Останавливаем и удаляем старые контейнеры, чтобы не было конфликтов..."
-            docker-compose down
-          
-            echo "📦 Собираем новые Docker-образы для всех сервисов..."
-            docker-compose build
-          
-            echo "⚙️ Применяем миграции для базы данных через отдельный контейнер..."
-            docker-compose run --rm web python manage.py migrate
-          
-            echo "📂 Собираем статические файлы Django через отдельный контейнер..."
-            docker-compose run --rm web python manage.py collectstatic --noinput
-          
-            echo "🚀 Запускаем все контейнеры в фоне (web, db, nginx)..."
-            docker-compose up -d
-          
-            echo "✅ Деплой завершён! Проверяем статус контейнеров:"
-            docker-compose ps
-          EOF
+        run: bash ./deploy.sh
