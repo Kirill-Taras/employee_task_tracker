@@ -29,21 +29,21 @@ class TaskAPITests(TestCase):
             email="manager@example.com",
             password="managerpass",
             full_name="Manager User",
-            position="Manager"
+            position="Manager",
         )
 
         self.employee1 = CustomUser.objects.create_user(
             email="employee1@example.com",
             password="emppass1",
             full_name="Employee One",
-            position="Developer"
+            position="Developer",
         )
 
         self.employee2 = CustomUser.objects.create_user(
             email="employee2@example.com",
             password="emppass2",
             full_name="Employee Two",
-            position="Tester"
+            position="Tester",
         )
 
         # Создаем тестовые задачи
@@ -53,7 +53,7 @@ class TaskAPITests(TestCase):
             due_date=date.today() + timedelta(days=7),
             status=Task.Status.IN_PROGRESS,
             creator=self.manager,
-            executor=self.employee1
+            executor=self.employee1,
         )
 
         self.task2 = Task.objects.create(
@@ -62,7 +62,7 @@ class TaskAPITests(TestCase):
             due_date=date.today() + timedelta(days=5),
             status=Task.Status.NEW,
             creator=self.manager,
-            executor=self.employee2
+            executor=self.employee2,
         )
 
         # Задача без исполнителя
@@ -71,7 +71,7 @@ class TaskAPITests(TestCase):
             description="Подготовить документацию",
             due_date=date.today() + timedelta(days=10),
             status=Task.Status.NEW,
-            creator=self.manager
+            creator=self.manager,
         )
 
         # URL для работы с задачами
@@ -98,7 +98,7 @@ class TaskAPITests(TestCase):
             "description": "Описание новой задачи",
             "due_date": date.today() + timedelta(days=14),
             "status": Task.Status.NEW,
-            "executor_id": self.employee1.id
+            "executor_id": self.employee1.id,
         }
 
         response = self.client.post(self.list_url, data, format="json")
@@ -118,13 +118,11 @@ class TaskAPITests(TestCase):
         updated_data = {
             "title": "Обновленное название",
             "status": Task.Status.IN_PROGRESS,
-            "executor_id": self.employee2.id
+            "executor_id": self.employee2.id,
         }
 
         response = self.client.patch(
-            self.detail_url(self.task1.id),
-            updated_data,
-            format="json"
+            self.detail_url(self.task1.id), updated_data, format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -161,9 +159,12 @@ class TaskAPITests(TestCase):
 
         # Проверяем, что employee1 имеет 1 активную задачу
         emp1_data = next(
-            (item for item in response.data
-             if item["employee"]["email"] == "employee1@example.com"),
-            None
+            (
+                item
+                for item in response.data
+                if item["employee"]["email"] == "employee1@example.com"
+            ),
+            None,
         )
         self.assertIsNotNone(emp1_data)
         self.assertEqual(emp1_data["active_tasks_count"], 1)
@@ -181,7 +182,7 @@ class TaskAPITests(TestCase):
             status=Task.Status.IN_PROGRESS,
             creator=self.manager,
             executor=self.employee1,
-            parent=self.task3
+            parent=self.task3,
         )
         self.assertTrue(Task.objects.filter(parent=self.task3).exists())
         self.client.force_authenticate(user=self.manager)
@@ -192,8 +193,7 @@ class TaskAPITests(TestCase):
         self.assertGreater(len(response.data), 0)
         # Проверяем, что task3 попала в важные задачи
         task_data = next(
-            (item for item in response.data if item["task"] == "Документирование"),
-            None
+            (item for item in response.data if item["task"] == "Документирование"), None
         )
         self.assertIsNotNone(task_data)
 
@@ -210,7 +210,7 @@ class TaskAPITests(TestCase):
         invalid_data = {
             "title": "Невалидная задача",
             "due_date": date.today() - timedelta(days=1),
-            "status": Task.Status.NEW
+            "status": Task.Status.NEW,
         }
 
         response = self.client.post(self.list_url, invalid_data, format="json")

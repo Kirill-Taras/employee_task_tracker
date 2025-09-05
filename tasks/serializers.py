@@ -34,7 +34,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "creator",
-            'due_date',
+            "due_date",
             "executor",
             "executor_id",
             "parent",
@@ -44,5 +44,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def validate_due_date(self, value):
         if value < date.today():
-            raise serializers.ValidationError("Дата выполнения не может быть в прошлом.")
+            raise serializers.ValidationError(
+                "Дата выполнения не может быть в прошлом."
+            )
         return value
