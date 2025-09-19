@@ -1,0 +1,54 @@
+services:
+
+  # Сервис Django
+  web:
+    build: .
+    container_name: employee_task_tracker_web
+    command: >
+      bash -c "python manage.py migrate 
+      && python manage.py collectstatic --noinput 
+      && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    ports:
+      - "80:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Сервис PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: task_tracker_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "${DB_PORT}:5432"
+
+  #Сервис Nginx
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Основной конфиг
+      - ./staticfiles:/app/staticfiles  # Статика Django
+      - ./media:/app/media  # Медиа
+    depends_on:
+      - web  # Зависит от Django-контейнера
+    restart: unless-stopped  # Автоперезапуск при падении
+
+volumes:
+  postgres_data:
